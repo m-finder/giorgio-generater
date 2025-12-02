@@ -1,0 +1,38 @@
+<?php
+
+namespace {{ namespace }};
+
+use App\Http\Requests\FormRequest;
+
+class {{ class }} extends FormRequest
+{
+    public function rules(): array
+    {
+        return match($this->method()){
+            'POST' => $this->postRules(),
+            'PUT' => $this->putRules(),
+        };
+    }
+
+    public function attributes(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    protected function postRules(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    protected function putRules(): array
+    {
+        return [
+            //
+        ];
+    }
+}
+
