@@ -9,8 +9,8 @@
 
 - [ ] Laravel: Model,Controller,Request,Migrate
 - [ ] Java: Entity,Mapper,Service
-- [ ] Db migrate
-- [ ] Db doc export
+- [ ] 数据库文档导出
+- [ ] 自定义生成模板
 
 ## 说明
 
