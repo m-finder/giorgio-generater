@@ -7,11 +7,10 @@ use Illuminate\Console\GeneratorCommand;
 class ModelMakeCommand extends GeneratorCommand
 {
     /** {@inheritdoc} */
-    protected $signature = 'make:model {name : The name of the model} {--p|path= : The path where the model should be created} {--f|force : Create the class even if the class already exists}';
+    protected $signature = 'make:model {name} {--p|path=} {--f|force}';
 
     /** {@inheritdoc} */
     protected $description = 'Create a new Model for PHP';
-
 
     /** {@inheritdoc} */
     protected $type = 'Model';
