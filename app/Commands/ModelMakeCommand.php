@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use Illuminate\Console\GeneratorCommand;
+use Illuminate\Support\Str;
 
 class ModelMakeCommand extends GeneratorCommand
 {
@@ -18,7 +19,7 @@ class ModelMakeCommand extends GeneratorCommand
      *
      * @var string
      */
-    protected $description = 'Create a new Model for PHP';
+    protected $description = 'Create a new Model for Laravel';
 
     /**
      * The type of class being generated.
@@ -56,15 +57,16 @@ class ModelMakeCommand extends GeneratorCommand
      */
     protected function getPath($name): string
     {
+
+        $name = Str::replaceFirst($this->rootNamespace(), '', $name);
+
         if ($this->option('path')) {
             $basePath = $this->option('path');
             $this->makeDirectory($basePath);
-            return rtrim($basePath, '/\\') . '/' . class_basename($name) . '.php';
+            return rtrim($basePath, '/\\') . '/app/' . str_replace('\\', '/', $name) . '.php';
         }
 
-        $basePath = getcwd() . '/app/Models';
-        $this->makeDirectory($basePath);
-        return $basePath . '/' . class_basename($name) . '.php';
+        return getcwd() . '/app/' . str_replace('\\', '/', $name) . '.php';
     }
 
     /**
