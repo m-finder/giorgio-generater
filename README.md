@@ -7,43 +7,56 @@
 
 本项目基于 [Laravel-Zero](https://laravel-zero.com), 目标是用 PHP 构建一个轻量的跨平台代码生成工具，主要功能包括：
 
-- [ ] Laravel: Model,Controller,Request,Migrate
-- [ ] Java: Entity,Mapper,Service
+- [ ] Laravel: Model,Controller,Request,Migrate...
+- [ ] Java: Entity,Mapper,Service...
 - [ ] 数据库文档导出
 - [ ] 自定义生成模板
 
 ## 说明
 
 > 项目还处于前期开发阶段！
-> 
+>
 > 项目预想如下：
-> 
+>
 > 1. 在任意项目内运行 `gen init`，生成 `.gen` 目录, 进入该目录可修改配置和模板。
-> 2. `gen make:model|controller|request` 后在当前目录生成对应文件；
-> 3. `gen make:laravel` 后在当前目录生成所有 model|controller|request 文件。
-> 4. `gen make:entity|mapper|service` 后在当前目录生成对应文件；
-> 5. `gen make:java` 后在当前目录生成所有 entity|mapper|service 文件。
+> 2. `gen laravel:model|controller|request` 后在当前目录生成对应文件；
+> 3. `gen laravel:all` 后在当前目录生成所有 model|controller|request 文件。
+> 4. `gen java:entity|mapper|service|controller` 后在当前目录生成对应文件；
+> 5. `gen java:all` 后在当前目录生成所有 entity|mapper|service|controller 文件。
 > 6. `gen export:pdf` 导出数据库说明文档。
-> 
+>
 > 主要功能开发完成后，会先通过 box 将项目打包成 phar 文件，然后再通过 static-php-cli 打包成对应平台的二进制文件。
 >
->最终将通过在命令行运行 gen make:xxx、gen export:pdf 等命令来完成上述功能。
+>最终将通过在命令行运行 gen laravel:xxx、gen java:xxx、gen export:pdf 等命令来完成上述功能。
 
 ## 使用方式
 
-#### 生成 Model
+#### 生成 Laravel Model
 
 - 在当前项目内生成 app/Models/TestModel 文件：
-    - `gen make:model TestModel`
+    - `gen laravel:model TestModel`
 - 在当前项目内生成 app/Models/Test/TestModel 文件：
-    - `gen make:model Test/TestModel`
+    - `gen laravel:model Test/TestModel`
 - 在当前项目内重新生成 app/Models/TestModel 文件：
-  - `gen make:model TestModel -f`
-  - `gen make:model TestModel --fource`
+    - `gen laravel:model TestModel -f`
+    - `gen laravel:model TestModel --fource`
 - 在指定文件夹生成 app/Models/TestModel 文件：
-    - `gen make:model TestModel -p /opt/homebrew/var/www/`
-    - `gen make:model TestModel --path=/opt/homebrew/var/www/`
+    - `gen laravel:model TestModel -p /opt/homebrew/var/www/`
+    - `gen laravel:model TestModel --path=/opt/homebrew/var/www/`
 
+
+#### 生成 Laravel Controller
+
+- 在当前项目内生成 app/Http/User/UserController 文件：
+    - `gen laravel:controller User/UserController`
+- 在当前项目内生成 app/Http/User/UserController 文件：
+    - `gen laravel:controller User/UserController`
+- 在当前项目内重新生成 app/Http/User/UserController 文件：
+    - `gen laravel:controller User/UserController -f`
+    - `gen laravel:controller User/UserController --fource`
+- 在指定文件夹生成 app/Http/User/UserController 文件：
+    - `gen laravel:controller User/UserController -p /opt/homebrew/var/www/`
+    - `gen laravel:controller User/UserController --path=/opt/homebrew/var/www/`
 
 ## PR 邀请
 
