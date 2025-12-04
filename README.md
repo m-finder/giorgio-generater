@@ -33,14 +33,17 @@
 
 #### 生成 Model
 
-- 在当前文件夹生成 Models/TestModel 文件：
+- 在当前项目内生成 app/Models/TestModel 文件：
     - `gen make:model TestModel`
-- 在指定文件夹生成 Models/TestModel 文件：
-    - `gen make:model TestModel -p /opt/homebrew/var/www/Models`
-    - `gen make:model TestModel --path=/opt/homebrew/var/www/Models`
-- 在当前文件夹重新生成 Models/TestModel 文件：
-    - `gen make:model TestModel -f`
-    - `gen make:model TestModel --fource`
+- 在当前项目内生成 app/Models/Test/TestModel 文件：
+    - `gen make:model Test/TestModel`
+- 在当前项目内重新生成 app/Models/TestModel 文件：
+  - `gen make:model TestModel -f`
+  - `gen make:model TestModel --fource`
+- 在指定文件夹生成 app/Models/TestModel 文件：
+    - `gen make:model TestModel -p /opt/homebrew/var/www/`
+    - `gen make:model TestModel --path=/opt/homebrew/var/www/`
+
 
 ## PR 邀请
 
