@@ -4,10 +4,12 @@
         "app",
         "bootstrap",
         "config",
+        "stubs",
         "vendor"
     ],
     "files": [
-        "composer.json"
+        "composer.json",
+        "env.example"
     ],
     "exclude-composer-files": false,
     "compression": "GZ",
