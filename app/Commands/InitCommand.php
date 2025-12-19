@@ -45,6 +45,7 @@ class InitCommand extends Command
         $file->copyDirectory(base_path('stubs'), $dotGen . '/stubs');
         $file->copy(base_path('env.example'), $dotGen . '/.env');
 
-        $this->info('Initialization successful. You can modify the config and template in the .gen directory');
+        // 输出成功信息
+        $this->components->info('Initialization successfully, You can modify the config and template in the .gen directory');
     }
 }
