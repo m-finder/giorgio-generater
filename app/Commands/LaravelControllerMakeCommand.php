@@ -9,7 +9,7 @@ use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Input\InputOption;
 use function Laravel\Prompts\confirm;
 
-class ControllerMakeCommand extends GiorgioCommand
+class LaravelControllerMakeCommand extends GiorgioCommand
 {
     /**
      * The name and signature of the console command.
@@ -52,6 +52,29 @@ class ControllerMakeCommand extends GiorgioCommand
     protected function getDefaultNamespace($rootNamespace): string
     {
         return $rootNamespace . '\Http\Controllers';
+    }
+
+
+    /**
+     * @return int
+     * @throws FileNotFoundException
+     */
+    public function handle(): int
+    {
+        parent::handle();
+
+        // 获取类名和路径
+        $name = $this->argument('name');
+        $path = $this->getPath($name);
+
+        // 显示生成的详情
+        $this->table(['Key', 'Value'], [
+            ['Class Name', class_basename(str_replace('/', '\\', $name))],
+            ['Namespace', $this->qualifyClass($name)],
+            ['File Path', $path],
+        ]);
+
+        return self::SUCCESS;
     }
 
     /**
