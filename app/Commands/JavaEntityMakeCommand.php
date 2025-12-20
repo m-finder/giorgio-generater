@@ -3,6 +3,8 @@
 namespace App\Commands;
 
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class JavaEntityMakeCommand extends GiorgioCommand
@@ -29,6 +31,34 @@ class JavaEntityMakeCommand extends GiorgioCommand
     protected $type = 'Entity';
 
     /**
+     * MySQL 到 Java 类型映射
+     */
+    protected array $typeMapping = [
+        'tinyint' => 'Integer',
+        'smallint' => 'Integer',
+        'mediumint' => 'Integer',
+        'int' => 'Integer',
+        'bigint' => 'Long',
+        'float' => 'Float',
+        'double' => 'Double',
+        'decimal' => 'BigDecimal',
+        'char' => 'String',
+        'varchar' => 'String',
+        'text' => 'String',
+        'mediumtext' => 'String',
+        'longtext' => 'String',
+        'date' => 'LocalDate',
+        'datetime' => 'LocalDateTime',
+        'timestamp' => 'LocalDateTime',
+        'time' => 'LocalTime',
+        'enum' => 'String',
+        'set' => 'String',
+        'json' => 'String',
+        'boolean' => 'Boolean',
+        'bool' => 'Boolean',
+    ];
+
+    /**
      * 获取默认包名
      */
     protected function getDefaultPackage(): string
@@ -37,7 +67,7 @@ class JavaEntityMakeCommand extends GiorgioCommand
     }
 
     /**
-     * 获取Java源码根目录
+     * 获取 Java 源码根目录
      */
     protected function getJavaSourcePath(): string
     {
@@ -54,17 +84,25 @@ class JavaEntityMakeCommand extends GiorgioCommand
         // 获取包名
         $package = $this->option('package') ?: $this->getDefaultPackage();
 
-        // 获取类名（处理可能包含的路径）
+        // 获取类名
         $className = class_basename(str_replace('/', '\\', $name));
 
         // 处理表名
         $tableName = $this->option('table') ?: $this->generateTableName($className);
+
+        // 生成字段
+        [$fields, $imports] = $this->generateFieldsFromDatabase($tableName);
+
+        // 处理导入
+        $this->addFixedImports($imports);
 
         // 替换模板变量
         $replacements = [
             '{{ package }}' => $package,
             '{{ class }}' => $className,
             '{{ table }}' => $this->formatTableName($tableName),
+            '{{ fields }}' => $fields,
+            '{{ imports }}' => $this->formatImports($imports),
         ];
 
         return str_replace(
@@ -99,6 +137,222 @@ class JavaEntityMakeCommand extends GiorgioCommand
         // 否则添加双引号
         return '"' . $tableName . '"';
     }
+
+    /**
+     * 从数据库表生成字段
+     */
+    protected function generateFieldsFromDatabase(string $tableName): array
+    {
+        if (!Schema::hasTable($tableName)) {
+            $this->error("Table '{$tableName}' does not exist in the database.");
+            return ['', []];
+        }
+
+        $columns = DB::select("SHOW FULL COLUMNS FROM `{$tableName}`");
+
+        $fields = [];
+        $imports = [];
+
+        foreach ($columns as $column) {
+            $fieldCode = $this->generateFieldCode($column);
+
+            if (!empty($fieldCode)) {
+                $fields[] = $fieldCode;
+
+                // 收集需要导入的类型
+                $javaType = $this->mapToJavaType($column->Type);
+                $this->collectImports($javaType, $imports);
+            }
+        }
+
+        return [
+            implode("\n\n", $fields),
+            array_unique($imports)
+        ];
+    }
+
+    /**
+     * 生成字段代码
+     */
+    protected function generateFieldCode(object $column): string
+    {
+        $fieldName = $this->columnNameToFieldName($column->Field);
+        $javaType = $this->mapToJavaType($column->Type);
+        $comment = $column->Comment ?: '';
+
+        $annotations = $this->generateFieldAnnotations($column);
+
+        $code = '';
+
+        // 添加注释
+        if ($comment) {
+            $code .= "    /**\n";
+            $code .= "     * {$comment}\n";
+            $code .= "     */\n";
+        }
+
+        // 添加注解
+        if (!empty($annotations)) {
+            foreach ($annotations as $annotation) {
+                $code .= "    {$annotation}\n";
+            }
+        }
+
+        // 添加字段声明
+        $code .= "    private {$javaType} {$fieldName};";
+
+        return $code;
+    }
+
+    /**
+     * 列名转换为字段名（驼峰）
+     */
+    protected function columnNameToFieldName(string $columnName): string
+    {
+        // 移除下划线并转为驼峰
+        return Str::camel($columnName);
+    }
+
+    /**
+     * 映射 MySQL 类型到 Java 类型
+     */
+    protected function mapToJavaType(string $mysqlType): string
+    {
+        $mysqlType = strtolower($mysqlType);
+
+        // 提取基本类型
+        preg_match('/^([a-z]+)/', $mysqlType, $matches);
+        $baseType = $matches[1] ?? $mysqlType;
+
+        // 处理无符号整数
+        if (str_contains($mysqlType, 'unsigned') && str_contains($baseType, 'int')) {
+            switch ($baseType) {
+                case 'tinyint':
+                case 'smallint':
+                case 'mediumint':
+                case 'int':
+                    return 'Integer';
+                case 'bigint':
+                    return 'Long';
+            }
+        }
+
+        // 处理带括号的类型（如 varchar(255)）
+        $baseType = preg_replace('/\([^)]*\)/', '', $baseType);
+
+        return $this->typeMapping[$baseType] ?? 'String';
+    }
+
+    /**
+     * 生成字段注解
+     */
+    protected function generateFieldAnnotations(object $column): array
+    {
+        $annotations = [];
+
+        // 主键注解
+        if ($column->Key === 'PRI') {
+            $idType = $this->determineIdType($column);
+            $annotations[] = "@TableId(type = IdType.{$idType})";
+        } // 普通字段注解
+        else {
+            $fieldName = $column->Field;
+            $propertyName = $this->columnNameToFieldName($fieldName);
+            $createTimeField = config('giorgio.field.created_time_field');
+            $updateTimeField = config('giorgio.field.updated_time_field');
+
+            // 如果字段名和属性名不同，添加 @TableField 注解
+            if ($fieldName !== $propertyName && !in_array($fieldName, array_merge($createTimeField, $updateTimeField))) {
+                $annotations[] = "@TableField(\"{$fieldName}\")";
+            }
+
+            // 特殊字段处理（创建时间、更新时间）
+            if (in_array($fieldName, $createTimeField)) {
+                $annotations[] = '@TableField(value = "created_at", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NEVER)';
+            } elseif (in_array($fieldName, $updateTimeField)) {
+                $annotations[] = '@TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)';
+            }
+        }
+
+        return $annotations;
+    }
+
+    /**
+     * 确定主键类型
+     */
+    protected function determineIdType(object $column): string
+    {
+        $type = strtolower($column->Type);
+
+        // 检查是否为自增
+        if (str_contains($type, 'auto_increment') || str_contains($column->Extra, 'auto_increment')) {
+            return 'AUTO';
+        }
+
+        // 检查是否有默认值
+        if ($column->Default !== null) {
+            return 'INPUT';
+        }
+
+        return 'NONE';
+    }
+
+    /**
+     * 收集需要导入的类
+     */
+    protected function collectImports(string $javaType, array &$imports): void
+    {
+        $importMap = [
+            'LocalDate' => 'java.time.LocalDate',
+            'LocalDateTime' => 'java.time.LocalDateTime',
+            'LocalTime' => 'java.time.LocalTime',
+            'BigDecimal' => 'java.math.BigDecimal',
+        ];
+
+        if (isset($importMap[$javaType]) && $importMap[$javaType]) {
+            if (!in_array($importMap[$javaType], $imports)) {
+                $imports[] = $importMap[$javaType];
+            }
+        }
+    }
+
+    /**
+     * 添加固定的导入语句
+     */
+    protected function addFixedImports(array &$imports): void
+    {
+        $fixedImports = [
+            'lombok.Data',
+            'lombok.Builder',
+            'lombok.AllArgsConstructor',
+            'lombok.NoArgsConstructor',
+            'com.baomidou.mybatisplus.annotation.*',
+        ];
+
+        foreach ($fixedImports as $import) {
+            if (!in_array($import, $imports)) {
+                $imports[] = $import;
+            }
+        }
+    }
+
+
+    /**
+     * 格式化导入语句
+     */
+    protected function formatImports(array $imports): string
+    {
+        $imports = array_unique(array_filter($imports));
+        sort($imports);
+
+        $result = '';
+        foreach ($imports as $import) {
+            $result .= "import {$import};\n";
+        }
+
+        return rtrim($result);
+    }
+
 
     /**
      * 获取文件路径
